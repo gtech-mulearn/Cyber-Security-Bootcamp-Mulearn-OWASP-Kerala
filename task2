@@ -1,0 +1,9 @@
+google dork used 
+Use Google Dorks to identify publicly accessible files or directories on `tesla.com` that may contain potentially sensitive or interesting information. All information was discovered using legal, ethical, and public search engine techniques.   
+dorking 1:
+site:tesla.com filetype:pdf "confidential"
+https://service.tesla.com/docs/ModelY/ElectricalReference/prog-201/diagram/2023.4_ModelY-SOP5.pdf
+IT CONTAINED PARTS AND SERVICE RELATE DCONFIDENTIAL INFO 
+
+THE INFORMATION CONTAINED HEREIN IS DEEMED TO BE CONFIDENTIAL, PROPRIETARY, AND A TRADE SECRET OF TESLA MOTORS. THIS. INFORMATION MAY NOT BE USED
+
