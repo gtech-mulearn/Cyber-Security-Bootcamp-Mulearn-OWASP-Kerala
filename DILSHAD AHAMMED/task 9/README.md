@@ -1,142 +1,138 @@
+## VULN-BANK — SECURITY REPORT
 
-# Vulnerability Assessment & Exploitation Report — **vuln-bank**
+### Vulnerability Assessment & Exploitation Findings
 
-**Author:** DILSHAD AHAMMED  
-**Date:** 10/08/2025  
-**Target (local):** `http://localhost:5000/`
-**Deliverable:** Concise technical report (Markdown)
+| Detail | Value |
+| :--- | :--- |
+| **Environment** | Local Docker (`http://localhost:5000`) |
+| **Repository** | `github.com/Commando-X/vuln-bank` |
+| **Prepared by** | DILSHAD AHAMMED |
+| **Date** | 10 October 2025 |
 
----
+-----
 
-## Summary
+### Executive Summary
 
-A low-complexity but high-impact **password reset PIN brute-force** flaw in the password reset flow allowed an attacker to reset the admin password (account takeover). I exploited the weakness using Burp Intruder (000–999) and then logged into the admin panel.
+I deployed the `vuln-bank` application locally and performed targeted testing of authentication, password reset, payment/checkout, and account balance flows.
 
-**Severity:** High — allows complete takeover of high-privilege account.  
-**Exploitability:** Easy — requires only local access to the web interface and automation for 3-digit PIN brute force.
+A **high-impact weakness** was confirmed in the **password-reset PIN flow** (3-digit brute-force $\rightarrow$ admin takeover). Additional confirmed issues include improper input handling on login (**SQLi patterns observed**), **balance/amount tampering**, **checkout/price tampering**, and weak validation in **virtual card/token generation**.
 
----
+These vulnerabilities allow account takeover, financial manipulation, and token misuse. **Immediate remediation** of the password reset flow and comprehensive server-side validation for all financial operations is strongly recommended.
 
-## Scope & Setup
+-----
 
-* App repository: `https://github.com/Commando-X/vuln-bank.git` (Docker used as recommended).
-* App start command used:
+### Scope of Assessment
 
-  ```bash
-  git clone https://github.com/Commando-X/vuln-bank.git && cd vuln-bank && docker-compose up --build -d
-  ```
-* Target URL: `http://localhost:5000/`
+The assessment covered the locally deployed `vuln-bank` application at `http://localhost:5000`. Tests focused on inputs and flows that directly affect authentication and financial integrity, including:
 
----
+  * Login/Authentication
+  * Directory Enumeration
+  * Password Reset
+  * Account Balance/Transfer
+  * Checkout/Cart
+  * Virtual Card/Token Generation
 
-## Tools used
+-----
 
-* Browser + Burp Suite (Proxy & Intruder).
-* Docker / docker-compose to run the target.
+### Methodology
 
----
+1.  **Deployment**: The application was deployed locally using Docker (`git clone` $\rightarrow$ `docker-compose up --build -d`).
+2.  **Mapping**: Functionality was mapped via the web UI and browser developer tools.
+3.  **Testing**: Targeted tests were performed using a browser, **Burp Suite** (Proxy & Intruder), and manual request tampering.
+4.  **Reporting**: Evidence (requests/responses, UI behavior, screenshots) was collected, and remediation advice was produced.
 
-## Finding #1 — Weak password reset PIN (3-digit brute-force)
+-----
 
-### Description
+### Vulnerability Findings
 
-The application exposes a password reset flow protected by a **3-digit PIN**. The PIN space is very small (000–999), and there is **no effective brute-force mitigation** (no rate limiting, no progressive delays, no account lockout or CAPTCHA). This enables an attacker to enumerate the PIN by automated requests and reset the target account password — in this case the `admin` account.
+#### 1\. Authentication / Input Handling — SQL Injection Indicators
 
-### Evidence (screenshots)
+| Detail | Description |
+| :--- | :--- |
+| **Risk Level** | MEDIUM |
+| **Finding** | The login form returned distinct responses when supplied SQL-style payloads (`'|| 1=1;-- -`), indicating insufficient input sanitization and a potential SQL Injection risk. |
+| **Impact** | If backend queries are not parameterized, this could lead to authentication bypass or data extraction. |
+| **Test** | Manual submission of SQLi-style payload to the login form; observed response behavior. |
+| **Recommendation** | Use **parameterized queries/prepared statements** and validate inputs server-side. |
+| **Evidence** |  |
 
+![Screenshot – login faild](./screenshots/login_faild.png)
 
+#### 2\. Password Reset — 3-digit PIN Brute-Force (Confirmed)
 
-### Reproduction steps
-
-1. Open `http://localhost:5000/`.
-2. Confirm login behavior:
-
-   * When attempting SQL injection payloads (e.g., `'|| 1=1;-- -`) the application returns **"login failed"**.
-   ![Screenshot – login faild](./screenshots/login_faild.png)
-   * For ordinary incorrect credentials, the application returns **"Invalid credentials"**.
-3. Navigate to the password reset / PIN entry endpoint .
-4. Intercept the PIN submission request in Burp Suite (Proxy).
-5. Send the request to **Intruder**. Place the attack position over the PIN parameter.
-6. Configure Intruder payloads:
-
-   * **Payload type:** Numbers
-   * **Start:** `0`, **End:** `999`, **Step:** `1`, **Padding width:** `3` → produces `000`..`999`
-   * **Attack type:** `Sniper` (single parameter)
-7. Run the attack and observe responses. Identify the request that returns a different response or a redirect indicating a valid PIN.
+| Detail | Description |
+| :--- | :--- |
+| **Risk Level** | **HIGH** |
+| **Finding** | The password reset flow relies on a **3-digit PIN (000–999)** with **no brute-force protections** (no rate limiting, no lockout, no CAPTCHA). This allowed automated brute forcing of the PIN. |
+| **Impact** | **Full administrative account takeover**; attacker control of application configuration, accounts, and data. |
+| **Test** | Discovered password reset flow used Burp Intruder (000 $\rightarrow$ 999, padding 3) to find the valid PIN; reset admin password to `newAdmin` and logged in. |
+| **Recommendation** | Replace short PINs with **cryptographically secure, single-use tokens** delivered to verified channels (email), implement **rate limiting/lockout**, add **CAPTCHA/MFA** for high-privilege flows, and log/alert on attempts. |
+| **Evidence** |   |
 
 ![Screenshot – burp-intruder](./screenshots/reset_pin_burp.png)
-
-8. Use the successful PIN to reset the `admin` password (I set it to `newAdmin`).
-9. Log in as `admin` at `http://localhost:5000/login` using the new password — access the admin panel.
-
 ![Screenshot – admin-panel](./screenshots/admin_panel.png)
 
-**Exact fields used:**
+#### 3\. Balance Manipulation / Improper Input Validation (Confirmed)
 
-* Username: `admin`
-* Reset flow PIN tested: `000` … `999` via Burp Intruder
-* New password used: `newAdmin` (set during reset)
+| Detail | Description |
+| :--- | :--- |
+| **Risk Level** | **HIGH** |
+| **Finding** | The server accepted **client-supplied numeric values** for transfers and balances without strict server-side validation. Tampering with `amount` fields via request interception was reflected in the UI. |
+| **Impact** | **Financial fraud** — balance inflation, unauthorized transfers, or theft. |
+| **Test** | Intercepted transfer POSTs with Burp, modified `amount`/`balance` fields, and observed resulting account balance behavior. |
+| **Recommendation** | **Enforce server-side numeric validation** and DB constraints. Balances and transfers must be calculated server-side. Add logging/alerts for anomalous transactions. |
 
----
+#### 4\. Checkout / Price Tampering (Confirmed)
 
-## Impact
+| Detail | Description |
+| :--- | :--- |
+| **Risk Level** | **HIGH** |
+| **Finding** | The checkout process accepted client-supplied price/total values. Modifying the cart/requested price led to accepted payments at tampered amounts. |
+| **Impact** | **Payment fraud**, underpayment, and reconciliation issues. |
+| **Test** | Modified `price`/`total`/`invoice_id` in intercepted checkout requests; observed accepted transactions reflected in UI. |
+| **Recommendation** | **Compute prices and totals server-side** from product IDs. Validate invoice IDs and payment tokens server-side. |
 
-* **Account takeover:** Full administrative access to the application via password reset.
-* **Post-compromise:** Once admin panel access is obtained, an attacker can modify application data, view sensitive data, change configurations, create accounts, and pivot to other systems if accessible.
-* **Business risk:** Unauthorized access to financial/banking application test data (sensitive), potential integrity and availability impact.
+#### 5\. Virtual Card / Token Generation — Weak Validation (Confirmed)
 
----
+| Detail | Description |
+| :--- | :--- |
+| **Risk Level** | MEDIUM-HIGH |
+| **Finding** | The virtual card/token generation endpoint accepted weakly validated inputs and issued tokens without strong server-side controls. |
+| **Impact** | Token misuse, fraud, or bypass of payment controls. |
+| **Test** | Exercised the virtual card flow and submitted crafted/edge inputs; tokens were generated and accepted. |
+| **Recommendation** | Restrict token/card creation to **authorized flows**. Generate tokens **server-side** using secure providers, validate inputs, and **rate-limit issuance**. |
 
-## Root causes
+-----
 
-* Insecure password reset mechanism using a tiny (3-digit) numeric PIN.
-* Lack of brute-force protections: no rate limiting, no lockout, no anomaly detection.
-* Possibly predictable or discoverable `/console` endpoint.
+### Risk Assessment (Verified Items)
 
----
+| Finding | Risk Level | Notes |
+| :--- | :--- | :--- |
+| Password reset brute-force | **HIGH** | Confirmed exploit and admin takeover. |
+| Balance manipulation | **HIGH** | Confirmed via request tampering. |
+| Checkout price tampering | **HIGH** | Confirmed via request tampering. |
+| Virtual card generation | MEDIUM-HIGH | Confirmed weak validation. |
+| SQLi indicators on login | MEDIUM | Observed input handling issues; backend remediation required. |
 
-## Remediation & Recommendations
+-----
 
-1. **Replace short PINs with strong tokens:** Use cryptographically secure, single-use reset tokens (e.g., 20+ random characters) delivered to the account owner (via email) with short expiry.
-2. **Secure reset workflow:** Require possession of a verified communication channel (email/SMS) to deliver reset tokens; do not rely on short numeric PINs.
-3. **Rate limiting & account lockout:** Implement per-account and per-IP rate limits on PIN attempts; introduce temporary lockout or progressive delays after N failed attempts.
-4. **CAPTCHA / bot mitigation:** Add CAPTCHA for sensitive flows (reset) or require additional authentication steps for high-privilege accounts.
-5. **Audit & alerting:** Log failed/successful reset attempts and alert on anomalous patterns (e.g., rapid successive PIN attempts).
-6. **Harden administrative endpoints:** Restrict access to `/console` `/admin` paths to trusted IP ranges or require prior authentication where possible.
-7. **Enforce strong passwords and MFA:** After reset, force a strong password policy and enable multi-factor authentication for admin accounts.
-8. **Use HTTPS:** Ensure the app uses TLS to protect credentials and reset tokens in transit.
-9. **Security testing / CI gating:** Add automated security checks for weak reset mechanisms in CI or pre-deployment tests.
+### Recommendations (Prioritized)
 
----
+#### High Priority:
 
-## Risk rating & justification
+  * **Disable or secure the PIN reset flow**; issue random, single-use reset tokens via verified email with short TTL.
+  * **Enforce server-side validation** for all financial inputs (`amount`, `balance`); add DB constraints and transaction checks.
+  * **Recompute prices/totals server-side**; never trust client-sent price fields.
+  * **Rate-limit** login/reset endpoints; implement lockouts and CAPTCHA for sensitive flows.
 
-* **Overall rating:** High
-* **Justification:** Exploitation requires minimal skill and no special privileges; compromise yields admin access and full control of the application. The consequence of compromise is severe.
+#### Medium Priority:
 
----
+  * **Parameterize all DB queries** and sanitize inputs to mitigate SQLi risk.
+  * Harden virtual card/token generation: enforce **server-side generation** + authorization + rate limits.
+  * Add **logging and alerts** for anomalous transfers and repeated reset attempts.
 
-## Short mitigation roadmap
+#### Longer Term:
 
-1. Disable the current PIN reset flow immediately or restrict access to it until fixes are in place.
-2. Implement per-account attempt limits (e.g., 5 attempts within 15 minutes → lockout).
-3. Deliver reset tokens to verified email addresses, and expire tokens within 15 minutes.
-4. Require admins to enable/require MFA.
-
----
-
-## Appendix — Burp Intruder configuration (concise)
-
-* **Target request:** PIN submission POST (captured via Proxy).
-* **Positions:** the single PIN parameter value.
-* **Payloads:** Numbers; Start = `0`, End = `999`, Step = `1`, Padding = `3` → produces `000`...`999`.
-* **Attack type:** `Sniper` (single parameter).
-* **Observation:** Look for different response length / status / redirect that indicates a successful PIN. Use response comparisons (match on location header or response body content).
-
----
-
-## Closing notes
-
-This vulnerability demonstrates how seemingly small design choices (short PIN length) create trivial attack vectors that result in total compromise. Fixing the reset flow and implementing basic anti-automation/monitoring controls will substantially reduce the risk.
-
----
+  * Enforce **HTTPS**, secure cookies, Content Security Policy (CSP).
+  * Integrate automated security checks in CI/CD pipelines.
+  * Schedule periodic penetration tests and security code reviews.
