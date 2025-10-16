@@ -20,6 +20,7 @@ This writeup documents the steps and findings while completing **Task 8** from t
 - Scanning the target triggers multiple alerts in the IDS dashboard. This confirms the IDS is active and monitoring traffic.
 
 ![First](./assets/1.png)
+
 ![Second](./assets/2.png)
 
 ---
@@ -51,7 +52,7 @@ This writeup documents the steps and findings while completing **Task 8** from t
 ## Task 6 — Grafana Discovery & CVE Research
 
 - Port **3000** served a **Grafana** login page.
-- Grafana version information was visible on the UI (bottom-right corner).
+- Grafana version information was visible on the UI
 - Next steps included searching public vulnerability databases for Grafana CVEs (Common Vulnerabilities and Exposures) for known exploits tied to the observed version.
 
 ![Grafana](./assets/5.png)
@@ -74,7 +75,6 @@ This writeup documents the steps and findings while completing **Task 8** from t
 
 - Executing the prescribed commands shows alerts detected by **Wazuh**.
 - The alerts relevant to the web activity were categorized under **`web`**.
-- The lab confirmed that web-related actions triggered the expected Wazuh rules.
 
 ![Wazuh](./assets/7.png)
 
@@ -86,15 +86,13 @@ This writeup documents the steps and findings while completing **Task 8** from t
 
 - After initial access to Grafana (user-level), the task required escalating to **root**.
 - Investigated available groups and accessible commands on the system.
-- Used a Docker-based bypass to obtain elevated privileges:
+- Used a Docker to obtain elevated privileges:
 
 ```bash
 docker run -it --entrypoint=/bin/bash -v /:/mnt/ ghcr.io/jroo1053/ctfscoreapache:master
 ```
 
 - After executing the container command and navigating the filesystem, a `root.txt` file was discovered containing the hidden flag.
-
-### Screenshot: Root file and confirmation
 
 ![Root flag discovery](./assets/9.png)
 
