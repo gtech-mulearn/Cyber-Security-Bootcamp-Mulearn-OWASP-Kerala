@@ -1,0 +1,56 @@
+# Task 1: TryHackMe CTF Writeup  
+**Contributor:** Aarathy M J  
+**Hashtag:** #cl-cybersec-owaspbootcamp1  
+**Karma:** 150  
+
+---
+
+## 1. Room Selected
+**Room Name:** [room name]  
+**Difficulty:** Beginner
+
+---
+
+## 2. Objective
+Complete a beginner TryHackMe CTF and document the steps and results.
+
+---
+
+## 3. Steps Taken
+
+1. Accessed the room and connected to the lab VPN if required.
+
+2. Scanned the target:
+```bash
+nmap -sC -sV <target-ip>
+```
+
+3. Found hidden pages with dirb:
+```bash
+dirb http://<target-ip> /usr/share/wordlists/dirb/common.txt -o dirb_results.txt
+```
+
+4. Checked discovered URLs in browser or with curl.
+
+5. Example transfer request found (replace with real values):
+```bash
+curl -X POST http://<target-ip>/admin/transfer -d "from=1001&to=2002&amount=100"
+```
+
+6. Saved screenshots of scans, dirb output, pages, and request/response.
+
+---
+
+## 4. Challenges
+- Interpreting scan results.
+- Completing exploitation steps.
+
+---
+
+## 5. Conclusion
+Completed the lab, collected screenshots, and documented commands and responses.
+
+---
+
+## Notes
+Only perform these steps inside authorized labs (TryHackMe). Replace placeholders with actual lab values and add screenshots.
