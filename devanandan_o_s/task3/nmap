@@ -1,0 +1,105 @@
+https://tryhackme.com/p/Devanandanos
+
+Further Nmap — Activity Explanation Report
+Room: Further Nmap
+Purpose: Learn advanced Nmap switches, scan types, NSE scripts, and firewall evasion techniques, then apply them in a practical challenge.
+
+Deploy
+You launch the target machine from TryHackMe.
+
+What’s happening: The room spins up a virtual environment with an IP address you can scan. This acts as your controlled target for practicing Nmap scans.
+
+Task 2 — Introduction
+You read about what the room covers — deeper exploration into Nmap beyond the basics.
+
+What’s happening: You’re preparing to use not just default scans, but fine-tuned scan types, timing, and scripting features.
+
+Task 3 — Nmap Switches
+You explore switches such as:
+
+-p (specific port selection)
+
+-p- (all ports)
+
+-T (timing templates)
+
+-v / -vv (verbosity)
+
+-A (aggressive scan with OS detection, versioning, and script scanning)
+
+What’s happening: Nmap sends different probes based on the switches, adjusting speed, scope, and detail level of its scan. Verbosity controls how much feedback you see as Nmap runs.
+
+Task 4 — Scan Types Overview
+You learn that Nmap has multiple scan modes depending on the transport protocol and desired stealth.
+
+What’s happening: Nmap can use TCP, UDP, or other packet types to discover services and hosts. The choice affects detectability, speed, and completeness.
+
+Task 5 — TCP Connect Scans
+Command example: nmap -sT <IP>
+
+What’s happening: Nmap completes a full TCP handshake with each target port. This is reliable but easier for firewalls and intrusion detection systems (IDS) to log because the connection fully establishes.
+
+Task 6 — SYN Scans
+Command example: nmap -sS <IP>
+
+What’s happening: Nmap sends a SYN packet and waits for SYN-ACK to indicate the port is open. It then sends an RST instead of completing the handshake — half-open scanning. This is faster and stealthier than -sT.
+
+Task 7 — UDP Scans
+Command example: nmap -sU <IP>
+
+What’s happening: Nmap sends UDP packets to target ports. Since UDP is connectionless, it relies on responses like ICMP “port unreachable” to infer closed ports. Lack of response may indicate open or filtered ports — making it slower and more prone to false positives.
+
+Task 8 — NULL, FIN, and Xmas Scans
+Commands:
+
+NULL: nmap -sN <IP>
+
+FIN: nmap -sF <IP>
+
+Xmas: nmap -sX <IP>
+
+What’s happening: These send unusual TCP flag combinations (or none) to see how hosts respond. They can bypass some filtering because they’re non-standard, but don’t work reliably on Windows systems (due to RFC differences).
+
+Task 9 — ICMP Network Scanning
+Command example: nmap -sn <IP>/24
+
+What’s happening: Nmap uses ICMP echo requests (ping sweeps) to detect live hosts without scanning ports. This is a lightweight way to map active machines on a network.
+
+Task 10 — NSE Scripts Overview
+NSE (Nmap Scripting Engine) can automate advanced tasks like vulnerability scanning, brute-forcing, and service enumeration.
+
+What’s happening: Nmap loads and runs .nse scripts that extend its capabilities. Scripts are organized into categories like discovery, vuln, auth, etc.
+
+Task 11 — Working with NSE
+Command example: nmap --script <script-name> <IP>
+
+What’s happening: You run specific NSE scripts against the target. Nmap executes Lua-based scripts to gather extra details about a service or detect known vulnerabilities.
+
+Task 12 — Searching for Scripts
+Command example: locate *.nse or searching the Nmap scripts directory.
+
+What’s happening: You identify scripts on your local system or from the online Nmap Script Library so you can match them to your scan goals.
+
+Task 13 — Firewall Evasion
+Techniques include:
+
+Fragmentation: -f
+
+Decoy scans: --decoy
+
+Spoofing MAC: --spoof-mac
+
+Changing scan speed: -T
+
+What’s happening: You modify packet structure, source, or timing to try and evade detection or filtering. This can bypass basic IDS/IPS rules, but is only to be done in authorized testing environments.
+
+Task 14 — Practical
+You apply everything learned to scan the target, identify open ports, determine services, detect OS, and possibly find vulnerabilities.
+
+What’s happening: You’re combining multiple scan types, NSE scripts, and techniques to gather a complete picture of the target system’s network exposure.
+
+Task 15 — Conclusion
+You review your findings and reflect on which scans were most effective and why.
+
+What’s happening: You consolidate knowledge, reinforcing when to use each type of scan and the importance of verifying results manually.
+
